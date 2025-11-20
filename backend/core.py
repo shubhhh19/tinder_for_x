@@ -5,7 +5,7 @@ import os
 import time
 
 # Hugging Face Inference API
-HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5"
 
 def get_embedding(text: str) -> List[float]:
     api_key = os.getenv("HUGGINGFACE_API_KEY")
@@ -15,7 +15,7 @@ def get_embedding(text: str) -> List[float]:
 
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {
-        "inputs": text,
+        "inputs": [text],
         "options": {"wait_for_model": True}
     }
 
@@ -47,6 +47,25 @@ def update_user_vector(user: User, tweet: Tweet, action: str):
     
     user.preference_vector = new_vector
 
+from sqlmodel import select
+import random
+
 def get_ranked_feed(user: User, db_session):
-    # Placeholder
-    return []
+    # For now, just return random tweets that the user hasn't swiped on yet
+    # In the future, this will use vector similarity
+    
+    # Get IDs of tweets user has already swiped
+    # Note: This is inefficient for large datasets, but fine for MVP
+    # swiped_query = select(Swipe.tweet_id).where(Swipe.user_id == user.id)
+    # swiped_ids = db_session.exec(swiped_query).all()
+    
+    # Get random tweets
+    # statement = select(Tweet).where(col(Tweet.id).notin_(swiped_ids)).limit(10)
+    statement = select(Tweet).limit(20)
+    results = db_session.exec(statement).all()
+    
+    # Shuffle them
+    results = list(results)
+    random.shuffle(results)
+    
+    return results[:10]

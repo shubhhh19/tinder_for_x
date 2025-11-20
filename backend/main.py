@@ -15,7 +15,17 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Tinder for X")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def on_startup():
@@ -36,10 +46,15 @@ def ingest_tweets(session: Session = Depends(get_session)):
 def get_feed(user_id: int, session: Session = Depends(get_session)):
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        # Auto-create user for MVP
+        user = User(id=user_id, username=f"user{user_id}", preference_vector=[0.0]*384)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
     
-    # TODO: Return ranked tweets
-    return {"feed": []}
+    # Get ranked tweets
+    tweets = get_ranked_feed(user, session)
+    return {"feed": tweets}
 
 @app.post("/swipe")
 def record_swipe(swipe: Swipe, session: Session = Depends(get_session)):
