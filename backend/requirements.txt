@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlmodel
+psycopg2-binary
+pgvector
+tweepy
+python-dotenv
+asyncpg
+requests
